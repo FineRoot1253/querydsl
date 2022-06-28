@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header :: header">
+    <title>Welcome</title>
+    <meta http-equiv="Content-Type" content="text/html: charset=UTF-8"/>
+</head>
+<body>
+    <div class="container">
+        <div th:replace="fragments/nav :: nav"></div>
+        <div th:replace="fragments/subHeader :: subHeader(Home)"></div>
+        <p>You're in home now.</p>
+    </div>
+</body>
+</html>
