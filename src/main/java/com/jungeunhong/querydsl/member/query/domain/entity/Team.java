@@ -5,6 +5,8 @@ import com.jungeunhong.querydsl.member.command.domain.entity.Member;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.persistence.*;
 import java.util.ArrayList;
@@ -12,7 +14,9 @@ import java.util.List;
 
 @Entity
 @Getter
+@Slf4j
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@ToString(of = {"id","name"})
 public class Team extends BaseEntity {
     @Id
     @GeneratedValue

@@ -2,28 +2,34 @@ package com.jungeunhong.querydsl;
 
 import com.jungeunhong.querydsl.member.command.domain.entity.Member;
 import com.jungeunhong.querydsl.member.command.domain.entity.QMember;
-import com.jungeunhong.querydsl.member.query.domain.entity.QTeam;
 import com.jungeunhong.querydsl.member.query.domain.entity.Team;
-import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import org.assertj.core.api.Assertions;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceContext;
+import javax.persistence.PersistenceUnit;
 import java.util.List;
 
 import static com.jungeunhong.querydsl.member.command.domain.entity.QMember.*;
 import static com.jungeunhong.querydsl.member.query.domain.entity.QTeam.*;
+import static com.querydsl.jpa.JPAExpressions.*;
 import static org.assertj.core.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
+@Slf4j
 public class QuerydslBasicTest {
 
     @Autowired
@@ -204,5 +210,323 @@ public class QuerydslBasicTest {
         assertThat(teamB.get(team.name)).isEqualTo("team_b");
         assertThat(teamB.get(member.age.avg())).isEqualTo(35);
     }
+
+    /**
+     * 조건: 팀 A에 소속된 모든 회원
+     */
+    @Test
+    @DisplayName("join_1:success")
+    void join_1(){
+        //given
+        List<Member> members = query.selectFrom(member)
+                .leftJoin(member.team, team)
+                .where(team.name.eq("team_a"))
+                .fetch();
+        //when
+
+        //then
+        assertThat(members).extracting("username").containsExactly("hong_1","hong_2");
+    }
+    
+    @Test
+    @DisplayName("theta_join:Success")
+    void theta_join(){
+        //given
+        em.persist(Member.createMember("team_a",10,null));
+        em.persist(Member.createMember("team_b",10,null));
+        //when
+        List<Member> members = query.select(member)
+                .from(member, team)
+                .where(member.username.eq(team.name))
+                .fetch();
+        //then
+        assertThat(members)
+                .extracting("username")
+                .containsExactly("team_a","team_b");
+        
+    }
+
+    /**
+     * 예) 회원과 팀을 조인하면서, 팀 이름이 team_a인 팀만 조인, 회원은 모두 조회 할 것
+     * JPQL: select m from Member m left join m.team t on t.name = 'team_a'
+     */
+    @Test
+    @DisplayName("on_filtering_join:success")
+    void on_filtering_join(){
+        //given
+        List<Tuple> tuples = query.select(member,team)
+                .from(member)
+                .leftJoin(member.team, team)
+                .on(team.name.eq("team_a"))
+                .fetch();
+        //when
+        for (Tuple tuple : tuples) {
+            System.out.println("tuple = " + tuple);
+        }
+        //then
+
+    }
+
+    /**
+     * 연관관계가 없는 엔티티 외부 조인
+     * 회원 이름이 팀 이름과 같은 대상 외부조인
+     */
+    @Test
+    @DisplayName("on_no_relation_join:success")
+    void on_no_relation_join(){
+        //given
+        em.persist(Member.createMember("team_a",10,null));
+        em.persist(Member.createMember("team_b",10,null));
+        em.persist(Member.createMember("team_c",10,null));
+        //when
+        List<Tuple> tuples = query.select(member, team)
+                .from(member)
+                .leftJoin(team)
+                .on(member.username.eq(team.name))
+                .fetch();
+        //then
+        for (Tuple tuple : tuples) {
+            System.out.println("tuple = " + tuple);
+        }
+
+    }
+
+    @PersistenceUnit
+    EntityManagerFactory emf;
+
+    @Test
+    @DisplayName("noFetch_join:[success]")
+    void noFetch_join(){
+        //given
+        em.flush(); // DB에 영속성 적용
+        em.clear(); // Persistence Context Clear
+
+        //when
+        Member findMember = query.select(member)
+                .from(member)
+                .where(member.username.eq("hong_1"))
+                .fetchOne();
+        boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
+        //then
+        assertThat(loaded).as("패치 조인 미적용").isFalse();
+    }
+
+    @Test
+    @DisplayName("fetch_join:[success]")
+    void fetch_join(){
+        //given
+        em.flush(); // DB에 영속성 적용
+        em.clear(); // Persistence Context Clear
+
+        //when
+        Member findMember = query.select(member)
+                .from(member)
+                .join(member.team,team).fetchJoin()
+                .where(QMember.member.username.eq("hong_1"))
+                .fetchOne();
+        boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
+        //then
+        assertThat(loaded).as("패치 조인 적용").isTrue();
+    }
+
+    /**
+     * [중첩 서브쿼리, Nested SubQuery]
+     * 나이가 가장 많은 회원 조회
+     */
+    @Test
+    @DisplayName("subQuery:[success]")
+    void subQuery(){
+        //given
+        QMember subMember1 = new QMember("sub_member_1");
+
+        //when
+        List<Member> members = query.selectFrom(member)
+                .where(member.age.eq(
+                        select(subMember1.age.max()).from(subMember1)
+                )).fetch();
+        //then
+        assertThat(members).extracting("age").containsExactly(40);
+
+    }
+
+    /**
+     * [중첩 서브쿼리, Nested SubQuery]
+     * 나이가 평균 이상인 회원 조회
+     */
+    @Test
+    @DisplayName("subQuery_Goe:[success]")
+    void subQuery_Goe(){
+        //given
+        QMember subMember1 = new QMember("sub_member_1");
+
+        //when
+        List<Member> members = query.selectFrom(member)
+                .where(member.age.goe(
+                        select(subMember1.age.avg()).from(subMember1)
+                )).fetch();
+        //then
+        assertThat(members).extracting("age").containsExactly(30,40);
+
+    }
+
+    /**
+     * [중첩 서브쿼리, Nested SubQuery]
+     * In 절 활용 예시
+     * 이렇게 쓰면 안된다 그냥 보여주는 예시이다.
+     */
+    @Test
+    @DisplayName("subQuery_In:[success]")
+    void subQuery_In(){
+        //given
+        QMember subMember1 = new QMember("sub_member_1");
+
+        //when
+        List<Member> members = query.selectFrom(member)
+                .where(member.age.in(
+                        select(subMember1.age)
+                                .from(subMember1)
+                                .where(subMember1.age.gt(10))
+                )).fetch();
+        //then
+        assertThat(members).extracting("age").containsExactly(20,30,40);
+    }
+
+    /**
+     * [스칼라 서브쿼리, Scalar SubQuery]
+     * select절 서브 쿼리
+     */
+    @Test
+    @DisplayName("selectSubQuery:[success]")
+    void selectSubQuery(){
+        //given
+        QMember subMember1 = new QMember("sub_member_1");
+
+        //when
+        List<Tuple> tuples = query.select(
+                member.username,
+                select(subMember1.age.avg())
+                        .from(subMember1))
+                .from(member)
+                .fetch();
+        //then
+//        assertThat(tuples).extracting("age").containsExactly(20,30,40);
+        for (Tuple tuple : tuples) {
+            log.info("tuple: {}",tuple);
+        }
+    }
+
+    /**
+     * 단순 조건
+     */
+    @Test
+    void basicCase(){
+        List<String> fetch = query
+                .select(
+                        member.age
+                                .when(10).then("열살")
+                                .when(20).then("스무살")
+                                .otherwise("기타")
+                )
+                .from(member)
+                .fetch();
+
+        for (String s : fetch) {
+            log.info("result: {}",s);
+        }
+    }
+
+    /**
+     * 복잡한 조건
+     */
+    @Test
+    @DisplayName("complexCase:[success]")
+    void complexCase(){
+        //given
+        List<String> fetch = query
+                .select(
+                        new CaseBuilder()
+                                .when(member.age.between(0, 20)).then("0~20살")
+                                .when(member.age.between(30, 40)).then("30~40살")
+                                .otherwise("기타")
+                )
+                .from(member)
+                .fetch();
+
+        for (String s : fetch) {
+            log.info("result: {}",s);
+        }
+    }
+
+    /**
+     *
+     */
+    @Test
+    @DisplayName("constant:[success]")
+    void constant(){
+        //given
+        List<Tuple> tuples = query.select(member.username, Expressions.constant("A"))
+                .from(member)
+                .fetch();
+        //when
+        for (Tuple tuple : tuples) {
+            log.info("tuple: {}", tuple);
+        }
+
+    }
+
+    @Test
+    @DisplayName("concatenations:[success]")
+    void concatenations(){
+        //given
+        List<String> members = query.select(member.username.concat("_").concat(member.age.stringValue()))
+                .from(member)
+                .where(member.username.eq("hong_1"))
+                .fetch();
+
+        //when
+        for (String member : members) {
+            log.info("member: {}", member);
+        }
+
+    }
+
+    @Test
+    @DisplayName("projection_one:[success]")
+    void projection_one(){
+        //given
+        List<String> members = query.select(member.username)
+                .from(member)
+                .fetch();
+
+        //given
+        List<Member> members2 = query.select(member)
+                .from(member)
+                .fetch();
+        //when
+        for (String member : members) {
+            log.info("member: {}", member);
+        }
+
+        for (Member member : members2) {
+            log.info("member: {}", member);
+        }
+
+    }
+
+    @Test
+    @DisplayName("tupleProjection:[success]")
+    void tupleProjection(){
+        //given
+        List<Tuple> tuples = query.select(member.username,member.age)
+                .from(member)
+                .fetch();
+        //when
+        for (Tuple member : tuples) {
+            log.info("member: {}", member);
+        }
+
+    }
+
+
 
 }
