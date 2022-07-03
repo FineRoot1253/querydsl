@@ -1,9 +1,15 @@
 package com.jungeunhong.querydsl;
 
+import com.jungeunhong.querydsl.member.command.domain.dto.MemberDto;
+import com.jungeunhong.querydsl.member.command.domain.dto.QMemberDto;
+import com.jungeunhong.querydsl.member.command.domain.dto.UserDto;
 import com.jungeunhong.querydsl.member.command.domain.entity.Member;
 import com.jungeunhong.querydsl.member.command.domain.entity.QMember;
-import com.jungeunhong.querydsl.member.query.domain.entity.Team;
+import com.jungeunhong.querydsl.team.command.domain.entity.QTeam;
+import com.jungeunhong.querydsl.team.command.domain.entity.Team;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
@@ -18,12 +24,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
-import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceUnit;
 import java.util.List;
 
 import static com.jungeunhong.querydsl.member.command.domain.entity.QMember.*;
-import static com.jungeunhong.querydsl.member.query.domain.entity.QTeam.*;
+import static com.jungeunhong.querydsl.team.command.domain.entity.QTeam.*;
 import static com.querydsl.jpa.JPAExpressions.*;
 import static org.assertj.core.api.Assertions.*;
 
@@ -525,6 +530,124 @@ public class QuerydslBasicTest {
             log.info("member: {}", member);
         }
 
+    }
+
+    @Test
+    @DisplayName("jpaDtoProjectionByNew:[success]")
+    void jpaDtoProjectionByNew(){
+        //given
+        List<MemberDto> memberDtos = em.createQuery("select " +
+                "new com.jungeunhong.querydsl.member.command.domain.dto.MemberDto(m.username, m.age) " +
+                "from Member m",
+                MemberDto.class)
+                .getResultList();
+        //when
+        for (MemberDto memberDto : memberDtos) {
+            log.info("member: {}", memberDto);
+        }
+
+    }
+
+    @Test
+    @DisplayName("queryDslDtoProjectionBySetter:[success]")
+    void queryDslDtoProjectionBySetter(){
+        //given
+        List<MemberDto> memberDtos = query.select(Projections.bean(
+                        MemberDto.class,
+                        member.username,
+                        member.age
+                ))
+                .from(member)
+                .fetch();
+        //when
+        for (MemberDto memberDto : memberDtos) {
+            log.info("member: {}", memberDto);
+        }
+
+    }
+
+    @Test
+    @DisplayName("queryDslDtoProjectionByfields:[success]")
+    void queryDslDtoProjectionByfields(){
+        //given
+        List<MemberDto> memberDtos = query.select(Projections.fields(
+                        MemberDto.class,
+                        member.username,
+                        member.age
+                ))
+                .from(member)
+                .fetch();
+        //when
+        for (MemberDto memberDto : memberDtos) {
+            log.info("member: {}", memberDto);
+        }
+    }
+
+    @Test
+    @DisplayName("queryDslDtoProjectionByConstructor:[success]")
+    void queryDslDtoProjectionByConstructor(){
+        //given
+        List<MemberDto> memberDtos = query.select(Projections.constructor(
+                        MemberDto.class,
+                        member.username,
+                        member.age
+                ))
+                .from(member)
+                .fetch();
+        //when
+        for (MemberDto memberDto : memberDtos) {
+            log.info("member: {}", memberDto);
+        }
+
+    }
+
+    @Test
+    @DisplayName("queryDslUserDtoProjectionByfields:[success]")
+    void queryDslUserDtoProjectionByfields(){
+        //given
+        List<UserDto> userDtos = query.select(Projections.fields(
+                        UserDto.class,
+                        member.username.as("name"),
+                        member.age
+                ))
+                .from(member)
+                .fetch();
+        //when
+        for (UserDto userDto : userDtos) {
+            log.info("member: {}", userDto);
+        }
+    }
+
+    @Test
+    @DisplayName("queryDslUserDtoProjectionByfieldsWithSubQuery:[success]")
+    void queryDslUserDtoProjectionByfieldsWithSubQuery(){
+        //given
+        QMember subMember1 = new QMember("sub_member_1");
+        List<UserDto> userDtos = query.select(Projections.fields(
+                        UserDto.class,
+                        member.username.as("name"),
+                        ExpressionUtils.as(select(subMember1.age.max()).from(subMember1),"age")
+                ))
+                .from(member)
+                .fetch();
+        //when
+        for (UserDto userDto : userDtos) {
+            log.info("member: {}", userDto);
+        }
+    }
+
+    @Test
+    @DisplayName("queryDslQDtoProjection:[success]")
+    void queryDslQDtoProjection(){
+        //given
+        QMember subMember1 = new QMember("sub_member_1");
+        List<MemberDto> userDtos = query.select(new QMemberDto(member.username, member.age))
+                .from(member)
+                .fetch();
+        //when
+        for (MemberDto userDto : userDtos) {
+            log.info("member: {}", userDto);
+        }
     }
 
 

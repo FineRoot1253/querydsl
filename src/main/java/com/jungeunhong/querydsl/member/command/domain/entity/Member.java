@@ -1,7 +1,7 @@
 package com.jungeunhong.querydsl.member.command.domain.entity;
 
 import com.jungeunhong.querydsl.common.entity.BaseEntity;
-import com.jungeunhong.querydsl.member.query.domain.entity.Team;
+import com.jungeunhong.querydsl.team.command.domain.entity.Team;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

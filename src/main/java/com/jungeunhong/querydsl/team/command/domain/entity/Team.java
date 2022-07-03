@@ -1,4 +1,4 @@
-package com.jungeunhong.querydsl.member.query.domain.entity;
+package com.jungeunhong.querydsl.team.command.domain.entity;
 
 import com.jungeunhong.querydsl.common.entity.BaseEntity;
 import com.jungeunhong.querydsl.member.command.domain.entity.Member;

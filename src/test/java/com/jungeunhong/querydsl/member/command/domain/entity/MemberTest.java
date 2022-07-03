@@ -1,19 +1,14 @@
 package com.jungeunhong.querydsl.member.command.domain.entity;
 
-import com.jungeunhong.querydsl.member.query.domain.entity.Team;
+import com.jungeunhong.querydsl.team.command.domain.entity.Team;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
-import javax.swing.text.html.parser.Entity;
 
-import java.util.ArrayList;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
