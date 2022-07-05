@@ -680,6 +680,78 @@ public class QuerydslBasicTest {
         assertThat(result.size()).isEqualTo(1);
     }
 
+    @Test
+    @DisplayName("bulkUpdate:[success]")
+    void bulkUpdate() {
+        //given
+        String usernameParam = "hong_1";
+        Integer ageParam = 10;
+
+        //when
+        long count = query.update(member)
+                .set(member.username, "비회원")
+                .where(member.age.lt(28))
+                .execute();
+
+    }
+
+    @Test
+    @DisplayName("bulkMultiply:[success]")
+    void bulkMultiply() {
+        //given
+
+        //when
+        long count = query.update(member)
+                .set(member.age, member.age.multiply(1))
+                .execute();
+
+    }
+
+    @Test
+    @DisplayName("bulkDelete:[success]")
+    void bulkDelete() {
+        //given
+
+        //when
+        long count = query.delete(member)
+                .where(member.age.gt(18))
+                .execute();
+
+    }
+
+    @Test
+    @DisplayName("sqlFunctionCall:[success]")
+    void sqlFunctionCall(){
+        //given
+
+        //when
+        List<String> list = query.select(Expressions.stringTemplate("function('replace', {0}, {1}, {2})", member.username, "hong", "H"))
+                .from(member)
+                .fetch();
+        //then
+        for (String s : list) {
+            log.info("result: {}",s);
+        }
+
+    }
+
+    @Test
+    @DisplayName("sqlFunctionCall_2:[success]")
+    void sqlFunctionCall_2(){
+        //given
+
+        //when
+        List<String> list = query.select(member.username)
+                .from(member)
+                .where(member.username.eq(Expressions.stringTemplate("function('lower', {0})", member.username)))
+                .fetch();
+        //then
+        for (String s : list) {
+            log.info("result: {}",s);
+        }
+
+    }
+
     private List<Member> searchMember_1(String usernameCond, Integer ageCond) {
         BooleanBuilder builder = new BooleanBuilder();
         if(usernameCond != null){
