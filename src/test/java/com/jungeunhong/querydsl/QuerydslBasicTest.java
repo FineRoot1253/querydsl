@@ -7,9 +7,12 @@ import com.jungeunhong.querydsl.member.command.domain.entity.Member;
 import com.jungeunhong.querydsl.member.command.domain.entity.QMember;
 import com.jungeunhong.querydsl.team.command.domain.entity.QTeam;
 import com.jungeunhong.querydsl.team.command.domain.entity.Team;
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
@@ -197,7 +200,7 @@ public class QuerydslBasicTest {
      * 각 팀의 이름과 각 팀의 평균 연령을 구해라
      */
     @Test
-    void aggregation_groupBy(){
+    void aggregation_groupBy() {
         List<Tuple> tuples = query.select(
                         team.name,
                         member.age.avg()
@@ -221,7 +224,7 @@ public class QuerydslBasicTest {
      */
     @Test
     @DisplayName("join_1:success")
-    void join_1(){
+    void join_1() {
         //given
         List<Member> members = query.selectFrom(member)
                 .leftJoin(member.team, team)
@@ -230,15 +233,15 @@ public class QuerydslBasicTest {
         //when
 
         //then
-        assertThat(members).extracting("username").containsExactly("hong_1","hong_2");
+        assertThat(members).extracting("username").containsExactly("hong_1", "hong_2");
     }
-    
+
     @Test
     @DisplayName("theta_join:Success")
-    void theta_join(){
+    void theta_join() {
         //given
-        em.persist(Member.createMember("team_a",10,null));
-        em.persist(Member.createMember("team_b",10,null));
+        em.persist(Member.createMember("team_a", 10, null));
+        em.persist(Member.createMember("team_b", 10, null));
         //when
         List<Member> members = query.select(member)
                 .from(member, team)
@@ -247,8 +250,8 @@ public class QuerydslBasicTest {
         //then
         assertThat(members)
                 .extracting("username")
-                .containsExactly("team_a","team_b");
-        
+                .containsExactly("team_a", "team_b");
+
     }
 
     /**
@@ -257,9 +260,9 @@ public class QuerydslBasicTest {
      */
     @Test
     @DisplayName("on_filtering_join:success")
-    void on_filtering_join(){
+    void on_filtering_join() {
         //given
-        List<Tuple> tuples = query.select(member,team)
+        List<Tuple> tuples = query.select(member, team)
                 .from(member)
                 .leftJoin(member.team, team)
                 .on(team.name.eq("team_a"))
@@ -278,11 +281,11 @@ public class QuerydslBasicTest {
      */
     @Test
     @DisplayName("on_no_relation_join:success")
-    void on_no_relation_join(){
+    void on_no_relation_join() {
         //given
-        em.persist(Member.createMember("team_a",10,null));
-        em.persist(Member.createMember("team_b",10,null));
-        em.persist(Member.createMember("team_c",10,null));
+        em.persist(Member.createMember("team_a", 10, null));
+        em.persist(Member.createMember("team_b", 10, null));
+        em.persist(Member.createMember("team_c", 10, null));
         //when
         List<Tuple> tuples = query.select(member, team)
                 .from(member)
@@ -301,7 +304,7 @@ public class QuerydslBasicTest {
 
     @Test
     @DisplayName("noFetch_join:[success]")
-    void noFetch_join(){
+    void noFetch_join() {
         //given
         em.flush(); // DB에 영속성 적용
         em.clear(); // Persistence Context Clear
@@ -318,7 +321,7 @@ public class QuerydslBasicTest {
 
     @Test
     @DisplayName("fetch_join:[success]")
-    void fetch_join(){
+    void fetch_join() {
         //given
         em.flush(); // DB에 영속성 적용
         em.clear(); // Persistence Context Clear
@@ -326,7 +329,7 @@ public class QuerydslBasicTest {
         //when
         Member findMember = query.select(member)
                 .from(member)
-                .join(member.team,team).fetchJoin()
+                .join(member.team, team).fetchJoin()
                 .where(QMember.member.username.eq("hong_1"))
                 .fetchOne();
         boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
@@ -340,7 +343,7 @@ public class QuerydslBasicTest {
      */
     @Test
     @DisplayName("subQuery:[success]")
-    void subQuery(){
+    void subQuery() {
         //given
         QMember subMember1 = new QMember("sub_member_1");
 
@@ -360,7 +363,7 @@ public class QuerydslBasicTest {
      */
     @Test
     @DisplayName("subQuery_Goe:[success]")
-    void subQuery_Goe(){
+    void subQuery_Goe() {
         //given
         QMember subMember1 = new QMember("sub_member_1");
 
@@ -370,7 +373,7 @@ public class QuerydslBasicTest {
                         select(subMember1.age.avg()).from(subMember1)
                 )).fetch();
         //then
-        assertThat(members).extracting("age").containsExactly(30,40);
+        assertThat(members).extracting("age").containsExactly(30, 40);
 
     }
 
@@ -381,7 +384,7 @@ public class QuerydslBasicTest {
      */
     @Test
     @DisplayName("subQuery_In:[success]")
-    void subQuery_In(){
+    void subQuery_In() {
         //given
         QMember subMember1 = new QMember("sub_member_1");
 
@@ -393,7 +396,7 @@ public class QuerydslBasicTest {
                                 .where(subMember1.age.gt(10))
                 )).fetch();
         //then
-        assertThat(members).extracting("age").containsExactly(20,30,40);
+        assertThat(members).extracting("age").containsExactly(20, 30, 40);
     }
 
     /**
@@ -402,21 +405,21 @@ public class QuerydslBasicTest {
      */
     @Test
     @DisplayName("selectSubQuery:[success]")
-    void selectSubQuery(){
+    void selectSubQuery() {
         //given
         QMember subMember1 = new QMember("sub_member_1");
 
         //when
         List<Tuple> tuples = query.select(
-                member.username,
-                select(subMember1.age.avg())
-                        .from(subMember1))
+                        member.username,
+                        select(subMember1.age.avg())
+                                .from(subMember1))
                 .from(member)
                 .fetch();
         //then
 //        assertThat(tuples).extracting("age").containsExactly(20,30,40);
         for (Tuple tuple : tuples) {
-            log.info("tuple: {}",tuple);
+            log.info("tuple: {}", tuple);
         }
     }
 
@@ -424,7 +427,7 @@ public class QuerydslBasicTest {
      * 단순 조건
      */
     @Test
-    void basicCase(){
+    void basicCase() {
         List<String> fetch = query
                 .select(
                         member.age
@@ -436,7 +439,7 @@ public class QuerydslBasicTest {
                 .fetch();
 
         for (String s : fetch) {
-            log.info("result: {}",s);
+            log.info("result: {}", s);
         }
     }
 
@@ -445,7 +448,7 @@ public class QuerydslBasicTest {
      */
     @Test
     @DisplayName("complexCase:[success]")
-    void complexCase(){
+    void complexCase() {
         //given
         List<String> fetch = query
                 .select(
@@ -458,7 +461,7 @@ public class QuerydslBasicTest {
                 .fetch();
 
         for (String s : fetch) {
-            log.info("result: {}",s);
+            log.info("result: {}", s);
         }
     }
 
@@ -467,7 +470,7 @@ public class QuerydslBasicTest {
      */
     @Test
     @DisplayName("constant:[success]")
-    void constant(){
+    void constant() {
         //given
         List<Tuple> tuples = query.select(member.username, Expressions.constant("A"))
                 .from(member)
@@ -481,7 +484,7 @@ public class QuerydslBasicTest {
 
     @Test
     @DisplayName("concatenations:[success]")
-    void concatenations(){
+    void concatenations() {
         //given
         List<String> members = query.select(member.username.concat("_").concat(member.age.stringValue()))
                 .from(member)
@@ -497,7 +500,7 @@ public class QuerydslBasicTest {
 
     @Test
     @DisplayName("projection_one:[success]")
-    void projection_one(){
+    void projection_one() {
         //given
         List<String> members = query.select(member.username)
                 .from(member)
@@ -520,9 +523,9 @@ public class QuerydslBasicTest {
 
     @Test
     @DisplayName("tupleProjection:[success]")
-    void tupleProjection(){
+    void tupleProjection() {
         //given
-        List<Tuple> tuples = query.select(member.username,member.age)
+        List<Tuple> tuples = query.select(member.username, member.age)
                 .from(member)
                 .fetch();
         //when
@@ -534,12 +537,12 @@ public class QuerydslBasicTest {
 
     @Test
     @DisplayName("jpaDtoProjectionByNew:[success]")
-    void jpaDtoProjectionByNew(){
+    void jpaDtoProjectionByNew() {
         //given
         List<MemberDto> memberDtos = em.createQuery("select " +
-                "new com.jungeunhong.querydsl.member.command.domain.dto.MemberDto(m.username, m.age) " +
-                "from Member m",
-                MemberDto.class)
+                                "new com.jungeunhong.querydsl.member.command.domain.dto.MemberDto(m.username, m.age) " +
+                                "from Member m",
+                        MemberDto.class)
                 .getResultList();
         //when
         for (MemberDto memberDto : memberDtos) {
@@ -550,7 +553,7 @@ public class QuerydslBasicTest {
 
     @Test
     @DisplayName("queryDslDtoProjectionBySetter:[success]")
-    void queryDslDtoProjectionBySetter(){
+    void queryDslDtoProjectionBySetter() {
         //given
         List<MemberDto> memberDtos = query.select(Projections.bean(
                         MemberDto.class,
@@ -568,7 +571,7 @@ public class QuerydslBasicTest {
 
     @Test
     @DisplayName("queryDslDtoProjectionByfields:[success]")
-    void queryDslDtoProjectionByfields(){
+    void queryDslDtoProjectionByfields() {
         //given
         List<MemberDto> memberDtos = query.select(Projections.fields(
                         MemberDto.class,
@@ -585,7 +588,7 @@ public class QuerydslBasicTest {
 
     @Test
     @DisplayName("queryDslDtoProjectionByConstructor:[success]")
-    void queryDslDtoProjectionByConstructor(){
+    void queryDslDtoProjectionByConstructor() {
         //given
         List<MemberDto> memberDtos = query.select(Projections.constructor(
                         MemberDto.class,
@@ -603,7 +606,7 @@ public class QuerydslBasicTest {
 
     @Test
     @DisplayName("queryDslUserDtoProjectionByfields:[success]")
-    void queryDslUserDtoProjectionByfields(){
+    void queryDslUserDtoProjectionByfields() {
         //given
         List<UserDto> userDtos = query.select(Projections.fields(
                         UserDto.class,
@@ -620,13 +623,13 @@ public class QuerydslBasicTest {
 
     @Test
     @DisplayName("queryDslUserDtoProjectionByfieldsWithSubQuery:[success]")
-    void queryDslUserDtoProjectionByfieldsWithSubQuery(){
+    void queryDslUserDtoProjectionByfieldsWithSubQuery() {
         //given
         QMember subMember1 = new QMember("sub_member_1");
         List<UserDto> userDtos = query.select(Projections.fields(
                         UserDto.class,
                         member.username.as("name"),
-                        ExpressionUtils.as(select(subMember1.age.max()).from(subMember1),"age")
+                        ExpressionUtils.as(select(subMember1.age.max()).from(subMember1), "age")
                 ))
                 .from(member)
                 .fetch();
@@ -638,7 +641,7 @@ public class QuerydslBasicTest {
 
     @Test
     @DisplayName("queryDslQDtoProjection:[success]")
-    void queryDslQDtoProjection(){
+    void queryDslQDtoProjection() {
         //given
         QMember subMember1 = new QMember("sub_member_1");
         List<MemberDto> userDtos = query.select(new QMemberDto(member.username, member.age))
@@ -650,6 +653,68 @@ public class QuerydslBasicTest {
         }
     }
 
+    @Test
+    @DisplayName("dynamicQuery_BooleanBuilder:[success]")
+    void dynamicQuery_BooleanBuilder() {
+        //given
+        String usernameParam = "hong_1";
+        Integer ageParam = 10;
 
+        //when
+        List<Member> result = searchMember_1(usernameParam, ageParam);
+        // then
+        assertThat(result.size()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("dynamicQuery_BooleanBuilder:[success]")
+    void dynamicQuery_WhereParam() {
+        //given
+        String usernameParam = "hong_1";
+        Integer ageParam = 10;
+
+        //when
+//        List<Member> result = searchMember_2(usernameParam, ageParam);
+        List<Member> result = searchMember_3(usernameParam, ageParam);
+        // then
+        assertThat(result.size()).isEqualTo(1);
+    }
+
+    private List<Member> searchMember_1(String usernameCond, Integer ageCond) {
+        BooleanBuilder builder = new BooleanBuilder();
+        if(usernameCond != null){
+            builder.and(member.username.eq(usernameCond));
+        }
+
+        if(ageCond != null){
+            builder.and(member.age.eq(ageCond));
+        }
+
+        return null;
+    }
+
+    private List<Member> searchMember_2(String usernameParam, Integer ageParam) {
+        return query.selectFrom(member)
+                .where(usernameEq(usernameParam), ageEq(ageParam))
+                .fetch();
+    }
+
+    private List<Member> searchMember_3(String usernameParam, Integer ageParam) {
+        return query.selectFrom(member)
+                .where(allEq(usernameParam,ageParam))
+                .fetch();
+    }
+
+    private BooleanExpression usernameEq(String usernameParam) {
+        return usernameParam == null ? null : member.username.eq(usernameParam);
+    }
+
+    private BooleanExpression ageEq(Integer ageParam) {
+        return ageParam == null ? null :member.age.eq(ageParam);
+    }
+
+    private Predicate allEq(String usernameParam, Integer ageParam) {
+        return usernameEq(usernameParam).and(ageEq(ageParam));
+    }
 
 }
